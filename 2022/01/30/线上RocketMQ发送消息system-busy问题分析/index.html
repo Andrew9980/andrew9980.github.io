@@ -25,15 +25,15 @@
 <meta property="og:site_name" content="安德鲁的时光机">
 <meta property="og:description" content="问题最近项目的RocketMQ监控有些消息发送失败了，于是上服务器上查看日志：  可以看到发送消息失败，报出了system busy, start flow control for a while的错误信息 分析接下来，我们根据报错信息进入rocketmq源码分析，我的rocketmq源码环境是4.9.3 123&lt;groupId&gt;org.apache.rocketmq&lt;&#x2F;grou">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://andrew9980.github.io/2022/01/30/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%5C%E7%BA%BF%E4%B8%8A%E6%8A%A5%E9%94%99%E6%97%A5%E5%BF%97.png">
-<meta property="og:image" content="http://andrew9980.github.io/2022/01/30/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%5CnettyRequestProcessor.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Andrew9980/pic_home/master/article_img/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E7%BA%BF%E4%B8%8A%E6%8A%A5%E9%94%99%E6%97%A5%E5%BF%97.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/Andrew9980/pic_home/master/article_img/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90nettyRequestProcessor.png">
 <meta property="article:published_time" content="2022-01-30T06:48:19.000Z">
-<meta property="article:modified_time" content="2022-01-30T08:49:41.432Z">
+<meta property="article:modified_time" content="2022-01-30T09:26:51.077Z">
 <meta property="article:author" content="Andrew">
 <meta property="article:tag" content="线上问题">
 <meta property="article:tag" content="RocketMQ">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://andrew9980.github.io/2022/01/30/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%5C%E7%BA%BF%E4%B8%8A%E6%8A%A5%E9%94%99%E6%97%A5%E5%BF%97.png">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Andrew9980/pic_home/master/article_img/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E7%BA%BF%E4%B8%8A%E6%8A%A5%E9%94%99%E6%97%A5%E5%BF%97.png">
   <!-- Canonical links -->
   <link rel="canonical" href="http://andrew9980.github.io/2022/01/30/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/index.html">
   
@@ -412,7 +412,7 @@
     <div class="article-entry marked-body" itemprop="articleBody">
       
         <h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>最近项目的RocketMQ监控有些消息发送失败了，于是上服务器上查看日志：</p>
-<p><img src="/2022/01/30/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%5C%E7%BA%BF%E4%B8%8A%E6%8A%A5%E9%94%99%E6%97%A5%E5%BF%97.png" alt="线上报错日志"></p>
+<p><img src="https://raw.githubusercontent.com/Andrew9980/pic_home/master/article_img/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%E7%BA%BF%E4%B8%8A%E6%8A%A5%E9%94%99%E6%97%A5%E5%BF%97.png" alt="线上报错日志"></p>
 <p>可以看到发送消息失败，报出了<strong>system busy, start flow control for a while</strong>的错误信息</p>
 <h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>接下来，我们根据报错信息进入rocketmq源码分析，我的rocketmq源码环境是4.9.3</p>
 <figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.rocketmq<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>rocketmq-all<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">version</span>&gt;</span>4.9.3-SNAPSHOT<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br></pre></td></tr></table></figure>
@@ -435,7 +435,7 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">NettyRequestProcessor</span> </span>&#123;</span><br><span class="line">    <span class="function">RemotingCommand <span class="title">processRequest</span><span class="params">(ChannelHandlerContext ctx, RemotingCommand request)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> Exception</span>;</span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">rejectRequest</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>我们看看有哪些实现类：</p>
-<p><img src="/2022/01/30/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90%5CnettyRequestProcessor.png" alt="image-20220130151852857"></p>
+<p><img src="https://raw.githubusercontent.com/Andrew9980/pic_home/master/article_img/%E7%BA%BF%E4%B8%8ARocketMQ%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AFsystem-busy%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90nettyRequestProcessor.png" alt="image-20220130151852857"></p>
 <p>可以看到，rocketmq对于不同的请求实现了很多场景的处理器，我们这里是发消息失败了，则主要是调用的SendMessageProcessor来处理发送消息的。而PullMessageProcessor是处理拉取消息的处理器。</p>
 <h4 id="Pair"><a href="#Pair" class="headerlink" title="Pair"></a>Pair</h4><p>Pair主要是将每个处理绑定一个固定的线程池来处理请求，发送消息报错了则是直接调用的SendMessageProcessor#rejectRequest()</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">rejectRequest</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.brokerController.getMessageStore().isOSPageCacheBusy() ||</span><br><span class="line">        <span class="keyword">this</span>.brokerController.getMessageStore().isTransientStorePoolDeficient();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
